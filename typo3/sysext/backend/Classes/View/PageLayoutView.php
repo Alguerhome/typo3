@@ -1431,8 +1431,8 @@ class PageLayoutView implements LoggerAwareInterface
                         }
                         $out .= '
                         <tr>
-							<td valign="top" class="t3-grid-cell">' . implode('</td>' . '
-							<td valign="top" class="t3-grid-cell">', $cCont) . '</td>
+							<td valign="top" class="t3-grid-cell" data-colpos="' . $cKey . '">' . implode('</td>
+							<td valign="top" class="t3-grid-cell" data-colpos="' . $cKey . '">', $cCont) . '</td>
 						</tr>';
                     }
                 }
@@ -2240,7 +2240,7 @@ class PageLayoutView implements LoggerAwareInterface
                         BackendUtility::getLabelFromItemListMerged($row['pid'], 'tt_content', 'menu_type', $row['menu_type'])
                     );
                     $menuTypeLabel = $menuTypeLabel ?: 'invalid menu type';
-                    $out .= $this->linkEditContent($menuTypeLabel, $row);
+                    $out .= $this->linkEditContent(htmlspecialchars($menuTypeLabel), $row);
                     if ($row['menu_type'] !== '2' && ($row['pages'] || $row['selected_categories'])) {
                         // Show pages if menu type is not "Sitemap"
                         $out .= ':' . $this->linkEditContent($this->generateListForCTypeMenu($row), $row) . '<br />';
@@ -2353,7 +2353,7 @@ class PageLayoutView implements LoggerAwareInterface
         foreach ($uidList as $uid) {
             $uid = (int)$uid;
             $record = BackendUtility::getRecord($table, $uid, 'title');
-            $content .= '<br>' . $record['title'] . ' (' . $uid . ')';
+            $content .= '<br>' . htmlspecialchars($record['title']) . ' (' . $uid . ')';
         }
         return $content;
     }
@@ -2545,7 +2545,7 @@ class PageLayoutView implements LoggerAwareInterface
         // First, select all languages that are available for the current user
         $availableTranslations = [];
         foreach ($this->siteLanguages as $language) {
-            if ($language->getLanguageId() === 0) {
+            if ($language->getLanguageId() <= 0) {
                 continue;
             }
             $availableTranslations[$language->getLanguageId()] = $language->getTitle();
@@ -4408,7 +4408,7 @@ class PageLayoutView implements LoggerAwareInterface
     protected function resolveSiteLanguages(int $pageId)
     {
         $site = GeneralUtility::makeInstance(SiteMatcher::class)->matchByPageId($pageId);
-        $this->siteLanguages = $site->getAvailableLanguages($this->getBackendUser(), false, $pageId);
+        $this->siteLanguages = $site->getAvailableLanguages($this->getBackendUser(), true, $pageId);
     }
 
     /**

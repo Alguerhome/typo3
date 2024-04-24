@@ -20,6 +20,7 @@ use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Authentication\AbstractUserAuthentication;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Core\Configuration\Features;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\LanguageAspect;
 use TYPO3\CMS\Core\Core\Environment;
@@ -31,6 +32,8 @@ use TYPO3\CMS\Core\Database\Query\QueryHelper;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
 use TYPO3\CMS\Core\Html\HtmlParser;
+use TYPO3\CMS\Core\Html\SanitizerBuilderFactory;
+use TYPO3\CMS\Core\Html\SanitizerInitiator;
 use TYPO3\CMS\Core\Imaging\ImageManipulation\Area;
 use TYPO3\CMS\Core\Imaging\ImageManipulation\CropVariantCollection;
 use TYPO3\CMS\Core\LinkHandling\LinkService;
@@ -73,6 +76,7 @@ use TYPO3\CMS\Frontend\Resource\FilePathSanitizer;
 use TYPO3\CMS\Frontend\Service\TypoLinkCodecService;
 use TYPO3\CMS\Frontend\Typolink\AbstractTypolinkBuilder;
 use TYPO3\CMS\Frontend\Typolink\UnableToLinkException;
+use TYPO3\HtmlSanitizer\Builder\BuilderInterface;
 
 /**
  * This class contains all main TypoScript features.
@@ -252,6 +256,8 @@ class ContentObjectRenderer implements LoggerAwareInterface
         'editIcons.' => 'array',
         'editPanel' => 'boolean',
         'editPanel.' => 'array',
+        'htmlSanitize' => 'boolean',
+        'htmlSanitize.' => 'array',
         'cacheStore' => 'hook',
         // this is a placeholder for storing the content in cache
         'stdWrapPostProcess' => 'hook',
@@ -2919,6 +2925,22 @@ class ContentObjectRenderer implements LoggerAwareInterface
         return $content;
     }
 
+    public function stdWrap_htmlSanitize(string $content = '', array $conf = []): string
+    {
+        $build = $conf['build'] ?? 'default';
+        if (class_exists($build) && is_a($build, BuilderInterface::class, true)) {
+            $builder = GeneralUtility::makeInstance($build);
+        } else {
+            $factory = GeneralUtility::makeInstance(SanitizerBuilderFactory::class);
+            $builder = $factory->build($build);
+        }
+        $sanitizer = $builder->build();
+        $initiator = $this->shallDebug()
+            ? GeneralUtility::makeInstance(SanitizerInitiator::class, DebugUtility::debugTrail())
+            : null;
+        return $sanitizer->sanitize($content, $initiator);
+    }
+
     /**
      * Store content into cache
      *
@@ -4061,9 +4083,28 @@ class ContentObjectRenderer implements LoggerAwareInterface
             $temp_conf = $this->mergeTSRef($temp_conf, 'parseFunc');
             $conf = $temp_conf['parseFunc.'];
         }
+        // early return, no processing in case no configuration is given
+        if (empty($conf)) {
+            // @deprecated Invoking ContentObjectRenderer::parseFunc without any configuration will trigger an exception in TYPO3 v12.0
+            trigger_error('Invoking ContentObjectRenderer::parseFunc without any configuration will trigger an exception in TYPO3 v12.0', E_USER_DEPRECATED);
+            return $theValue;
+        }
+        // Handle HTML sanitizer invocation
+        if (!isset($conf['htmlSanitize'])) {
+            // @deprecated Property htmlSanitize was not defined, but will be mandatory in TYPO3 v12.0
+            trigger_error('Property htmlSanitize was not defined, but will be mandatory in TYPO3 v12.0', E_USER_DEPRECATED);
+            $features = GeneralUtility::makeInstance(Features::class);
+            $conf['htmlSanitize'] = $features->isFeatureEnabled('security.frontend.htmlSanitizeParseFuncDefault');
+        }
+        $conf['htmlSanitize'] = (bool)$conf['htmlSanitize'];
+
         // Process:
         if ((string)($conf['externalBlocks'] ?? '') === '') {
-            return $this->_parseFunc($theValue, $conf);
+            $result = $this->_parseFunc($theValue, $conf);
+            if ($conf['htmlSanitize']) {
+                $result = $this->stdWrap_htmlSanitize($result, $conf['htmlSanitize.'] ?? []);
+            }
+            return $result;
         }
         $tags = strtolower(implode(',', GeneralUtility::trimExplode(',', $conf['externalBlocks'])));
         $htmlParser = GeneralUtility::makeInstance(HtmlParser::class);
@@ -4143,7 +4184,11 @@ class ContentObjectRenderer implements LoggerAwareInterface
                 $parts[$k] = $this->_parseFunc($parts[$k], $conf);
             }
         }
-        return implode('', $parts);
+        $result = implode('', $parts);
+        if ($conf['htmlSanitize']) {
+            $result = $this->stdWrap_htmlSanitize($result, $conf['htmlSanitize.'] ?? []);
+        }
+        return $result;
     }
 
     /**
@@ -5499,8 +5544,9 @@ class ContentObjectRenderer implements LoggerAwareInterface
         }
 
         if ($JSwindowParams) {
-            $onClick = 'vHWin=window.open(' . GeneralUtility::quoteJSvalue($tsfe->baseUrlWrap($finalTagParts['url'])) . ',\'FEopenLink\',' . GeneralUtility::quoteJSvalue($JSwindowParams) . ');vHWin.focus();return false;';
+            $onClick = 'openPic(' . GeneralUtility::quoteJSvalue($tsfe->baseUrlWrap($finalTagParts['url'])) . ',\'FEopenLink\',' . GeneralUtility::quoteJSvalue($JSwindowParams) . ');return false;';
             $tagAttributes['onclick'] = htmlspecialchars($onClick);
+            $this->getTypoScriptFrontendController()->setJS('openPic');
         }
 
         if (!empty($resolvedLinkParameters['class'])) {
@@ -6604,7 +6650,7 @@ class ContentObjectRenderer implements LoggerAwareInterface
             );
             if ($conf[$property] === '') {
                 unset($conf[$property]);
-            } elseif (in_array($property, ['languageField', 'selectFields', 'join', 'leftJoin', 'rightJoin', 'where'], true)) {
+            } elseif (in_array($property, ['languageField', 'selectFields', 'join', 'leftjoin', 'rightjoin', 'where'], true)) {
                 $conf[$property] = QueryHelper::quoteDatabaseIdentifiers($connection, $conf[$property]);
             }
             if (isset($conf[$property . '.'])) {
@@ -7534,5 +7580,14 @@ class ContentObjectRenderer implements LoggerAwareInterface
         }
         // Otherwise just return the link text
         return $linkText;
+    }
+
+    protected function shallDebug(): bool
+    {
+        $tsfe = $this->getTypoScriptFrontendController();
+        if ($tsfe !== null && isset($tsfe->config['config']['debug'])) {
+            return (bool)($tsfe->config['config']['debug']);
+        }
+        return !empty($GLOBALS['TYPO3_CONF_VARS']['FE']['debug']);
     }
 }

@@ -16,6 +16,7 @@ namespace TYPO3\CMS\Beuser\Controller;
 
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Compatibility\PublicMethodDeprecationTrait;
+use TYPO3\CMS\Core\Session\Backend\HashableSessionBackendInterface;
 use TYPO3\CMS\Core\Session\Backend\SessionBackendInterface;
 use TYPO3\CMS\Core\Session\SessionManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -187,10 +188,15 @@ class BackendUserController extends ActionController
             ];
         }
 
+        $currentSessionId = $this->getBackendUserAuthentication()->getSessionId();
+        $sessionBackend = $this->getSessionBackend();
+        if ($sessionBackend instanceof HashableSessionBackendInterface) {
+            $currentSessionId = $sessionBackend->hash($currentSessionId);
+        }
         $this->view->assignMultiple([
             'shortcutLabel' => 'onlineUsers',
             'onlineUsersAndSessions' => $onlineUsersAndSessions,
-            'currentSessionId' => $this->getBackendUserAuthentication()->user['ses_id'],
+            'currentSessionId' => $currentSessionId,
         ]);
     }
 
@@ -243,6 +249,7 @@ class BackendUserController extends ActionController
      */
     protected function terminateBackendUserSessionAction(\TYPO3\CMS\Beuser\Domain\Model\BackendUser $backendUser, $sessionId)
     {
+        // terminating value of persisted session ID (probably hashed value)
         $sessionBackend = $this->getSessionBackend();
         $success = $sessionBackend->remove($sessionId);
 
@@ -266,8 +273,7 @@ class BackendUserController extends ActionController
             $this->getBackendUserAuthentication()->uc['recentSwitchedToUsers'] = $this->generateListOfMostRecentSwitchedUsers($targetUser['uid']);
             $this->getBackendUserAuthentication()->writeUC();
 
-            $sessionBackend = $this->getSessionBackend();
-            $sessionBackend->update(
+            $this->getSessionBackend()->update(
                 $this->getBackendUserAuthentication()->getSessionId(),
                 [
                     'ses_userid' => (int)$targetUser['uid'],

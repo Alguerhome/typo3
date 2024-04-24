@@ -57,7 +57,7 @@ class NodeVisitor extends NodeVisitorAbstract
                     // PHPDocumentor 2 tags
                     'api', 'author', 'category', 'copyright', 'deprecated', 'example', 'filesource', 'global', 'ignore', 'internal', 'license', 'link', 'method', 'package', 'param', 'property', 'property-read', 'property-write', 'return', 'see', 'since', 'source', 'subpackage', 'throws', 'todo', 'TODO', 'usedby', 'uses', 'var', 'version',
                     // PHPUnit tags
-                    'codeCoverageIgnore', 'codeCoverageIgnoreStart', 'codeCoverageIgnoreEnd', 'test', 'covers', 'dataProvider', 'group', 'skip', 'depends', 'expectedException', 'before', 'requires', 'runInSeparateProcess',
+                    'codeCoverageIgnore', 'codeCoverageIgnoreStart', 'codeCoverageIgnoreEnd', 'test', 'covers', 'dataProvider', 'group', 'skip', 'depends', 'expectedException', 'before', 'requires',
                     // codeception tags
                     'env',
                     // PHPCheckStyle
@@ -73,7 +73,9 @@ class NodeVisitor extends NodeVisitorAbstract
                     'Transient', 'Extbase\\\\ORM\\\\Lazy', 'Enum',
                     'TYPO3\\\\CMS\\\\Extbase\\\\Annotation\\\\ORM\\\\Cascade', 'Extbase\\\\ORM\\\\Cascade', 'Cascade',
                     // Extension scanner
-                    'extensionScannerIgnoreFile', 'extensionScannerIgnoreLine'
+                    'extensionScannerIgnoreFile', 'extensionScannerIgnoreLine',
+                    // static code analysis
+                    'template', 'implements', 'extends'
                 ];
 
                 $matches = [];

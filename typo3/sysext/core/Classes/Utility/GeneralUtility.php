@@ -3338,7 +3338,9 @@ class GeneralUtility
                 }
             } elseif (self::isAbsPath($decodedUrl) && self::isAllowedAbsPath($decodedUrl)) {
                 $sanitizedUrl = $url;
-            } elseif (strpos($testAbsoluteUrl, self::getIndpEnv('TYPO3_SITE_PATH')) === 0 && $decodedUrl[0] === '/') {
+            } elseif (strpos($testAbsoluteUrl, self::getIndpEnv('TYPO3_SITE_PATH')) === 0 && $decodedUrl[0] === '/' &&
+                substr($decodedUrl, 0, 2) !== '//'
+            ) {
                 $sanitizedUrl = $url;
             } elseif (empty($parsedUrl['scheme']) && strpos($testRelativeUrl, self::getIndpEnv('TYPO3_SITE_PATH')) === 0
                 && $decodedUrl[0] !== '/' && strpbrk($decodedUrl, '*:|"<>') === false && strpos($decodedUrl, '\\\\') === false
@@ -3651,9 +3653,10 @@ class GeneralUtility
      * GeneralUtility::makeInstance() first and call its get() method to get
      * the instance of a specific class.
      *
-     * @param string $className name of the class to instantiate, must not be empty and not start with a backslash
+     * @template T
+     * @param string|class-string<T> $className name of the class to instantiate, must not be empty and not start with a backslash
      * @param array<int, mixed> $constructorArguments Arguments for the constructor
-     * @return object the created instance
+     * @return object&T the created instance
      * @throws \InvalidArgumentException if $className is empty or starts with a backslash
      */
     public static function makeInstance($className, ...$constructorArguments)

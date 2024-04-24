@@ -14,6 +14,7 @@ namespace TYPO3\CMS\Core\Resource;
  * The TYPO3 project - inspiring people to share!
  */
 use TYPO3\CMS\Core\Utility\ArrayUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Representation of a specific usage of a file with possibilities to override certain
@@ -35,15 +36,6 @@ class FileReference implements FileInterface
      * @var array
      */
     protected $propertiesOfFileReference;
-
-    /**
-     * The identifier of this file to identify it on the storage.
-     * On some drivers, this is the path to the file, but drivers could also just
-     * provide any other unique identifier for this file on the specific storage.
-     *
-     * @var string
-     */
-    protected $uidOfFileReference;
 
     /**
      * The file name of this file. It's either the fileName of the original underlying file,
@@ -76,8 +68,8 @@ class FileReference implements FileInterface
      * @param array $fileReferenceData
      * @param ResourceFactory $factory
      *
-     * @throws \RuntimeException
      * @throws \InvalidArgumentException
+     * @throws Exception\FileDoesNotExistException
      */
     public function __construct(array $fileReferenceData, $factory = null)
     {
@@ -85,18 +77,24 @@ class FileReference implements FileInterface
         if (!$fileReferenceData['uid_local']) {
             throw new \InvalidArgumentException('Incorrect reference to original file given for FileReference.', 1300098528);
         }
-        if (!$factory) {
+        $this->originalFile = $this->getFileObject((int)$fileReferenceData['uid_local'], $factory);
+        $this->name = $fileReferenceData['name'] !== '' ? $fileReferenceData['name'] : $this->originalFile->getName();
+    }
+
+    /**
+     * @param int $uidLocal
+     * @param ResourceFactory|null $factory
+     * @return FileInterface
+     *
+     * @throws Exception\FileDoesNotExistException
+     */
+    private function getFileObject(int $uidLocal, ResourceFactory $factory = null): FileInterface
+    {
+        if ($factory === null) {
             /** @var ResourceFactory $factory */
             $factory = ResourceFactory::getInstance();
         }
-        $this->originalFile = $factory->getFileObject($fileReferenceData['uid_local']);
-        if (!is_object($this->originalFile)) {
-            throw new \RuntimeException(
-                'Original file not found for FileReference. UID given: "' . $fileReferenceData['uid_local'] . '"',
-                1300098529
-            );
-        }
-        $this->name = $fileReferenceData['name'] !== '' ? $fileReferenceData['name'] : $this->originalFile->getName();
+        return $factory->getFileObject($uidLocal);
     }
 
     /*******************************
@@ -515,5 +513,27 @@ class FileReference implements FileInterface
     public function getParentFolder()
     {
         return $this->originalFile->getParentFolder();
+    }
+
+    /**
+     * Avoids exporting original file object which contains
+     * singleton dependencies that must not be serialized.
+     *
+     * @return string[]
+     */
+    public function __sleep(): array
+    {
+        $keys = get_object_vars($this);
+        unset($keys['originalFile'], $keys['mergedProperties']);
+        return array_keys($keys);
+    }
+
+    public function __wakeup(): void
+    {
+        $factory = GeneralUtility::makeInstance(ResourceFactory::class);
+        $this->originalFile = $this->getFileObject(
+            (int)$this->propertiesOfFileReference['uid_local'],
+            $factory
+        );
     }
 }

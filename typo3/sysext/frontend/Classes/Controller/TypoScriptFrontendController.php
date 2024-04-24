@@ -883,7 +883,7 @@ class TypoScriptFrontendController implements LoggerAwareInterface
                 GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__)->warning($warning);
             }
         }
-        $this->cHash = $cHash;
+        $this->cHash = (string)$cHash;
         $this->MP = $GLOBALS['TYPO3_CONF_VARS']['FE']['enable_mount_pids'] ? (string)$MP : '';
         $this->uniqueString = md5(microtime());
         $this->initPageRenderer();
@@ -1102,11 +1102,7 @@ class TypoScriptFrontendController implements LoggerAwareInterface
      */
     public function clear_preview()
     {
-        if ($this->fePreview
-            || $GLOBALS['EXEC_TIME'] !== $GLOBALS['SIM_EXEC_TIME']
-            || $this->context->getPropertyFromAspect('visibility', 'includeHiddenPages', false)
-            || $this->context->getPropertyFromAspect('visibility', 'includeHiddenContent', false)
-        ) {
+        if ($this->isInPreviewMode()) {
             $GLOBALS['SIM_EXEC_TIME'] = $GLOBALS['EXEC_TIME'];
             $GLOBALS['SIM_ACCESS_TIME'] = $GLOBALS['ACCESS_TIME'];
             $this->fePreview = 0;
@@ -1199,13 +1195,14 @@ class TypoScriptFrontendController implements LoggerAwareInterface
         // If there is a Backend login we are going to check for any preview settings
         $originalFrontendUserGroups = $this->applyPreviewSettings($this->getBackendUser());
         // If the front-end is showing a preview, caching MUST be disabled.
-        if ($this->fePreview) {
+        $isPreview = $this->isInPreviewMode();
+        if ($isPreview) {
             $this->disableCache();
         }
         // Now, get the id, validate access etc:
         $this->fetch_the_id();
         // Check if backend user has read access to this page. If not, recalculate the id.
-        if ($this->isBackendUserLoggedIn() && $this->fePreview && !$this->getBackendUser()->doesUserHaveAccess($this->page, Permission::PAGE_SHOW)) {
+        if ($this->isBackendUserLoggedIn() && $isPreview && !$this->getBackendUser()->doesUserHaveAccess($this->page, Permission::PAGE_SHOW)) {
             // Resetting
             $this->clear_preview();
             $this->fe_user->user[$this->fe_user->usergroup_column] = $originalFrontendUserGroups;
@@ -2251,7 +2248,7 @@ class TypoScriptFrontendController implements LoggerAwareInterface
                 $this->type = (int)$GET_VARS['type'];
             }
             if (isset($GET_VARS['cHash'])) {
-                $this->cHash = $GET_VARS['cHash'];
+                $this->cHash = (string)$GET_VARS['cHash'];
             }
             if (isset($GET_VARS['MP'])) {
                 $this->MP = $GLOBALS['TYPO3_CONF_VARS']['FE']['enable_mount_pids'] ? $GET_VARS['MP'] : '';
@@ -2284,7 +2281,7 @@ class TypoScriptFrontendController implements LoggerAwareInterface
             return;
         }
         $GET = GeneralUtility::_GET();
-        if ($this->cHash && is_array($GET)) {
+        if ($this->cHash !== '' && is_array($GET)) {
             // Make sure we use the page uid and not the page alias
             $GET['id'] = $this->id;
             $this->cHash_array = $this->cacheHash->getRelevantParameters(HttpUtility::buildQueryString($GET));
@@ -2318,7 +2315,7 @@ class TypoScriptFrontendController implements LoggerAwareInterface
     public function reqCHash()
     {
         $skip = $this->pageArguments !== null && empty($this->pageArguments->getDynamicArguments());
-        if ($this->cHash || $skip) {
+        if ($this->cHash !== '' || $skip) {
             return;
         }
         if ($this->pageArguments) {
@@ -5061,6 +5058,14 @@ class TypoScriptFrontendController implements LoggerAwareInterface
             ];
         }
         return $additionalHeaders;
+    }
+
+    protected function isInPreviewMode(): bool
+    {
+        return $this->fePreview
+            || $GLOBALS['EXEC_TIME'] !== $GLOBALS['SIM_EXEC_TIME']
+            || $this->context->getPropertyFromAspect('visibility', 'includeHiddenPages', false)
+            || $this->context->getPropertyFromAspect('visibility', 'includeHiddenContent', false);
     }
 
     /**

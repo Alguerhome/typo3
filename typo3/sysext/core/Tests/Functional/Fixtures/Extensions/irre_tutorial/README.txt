@@ -1,6 +1,6 @@
 =====================================================================================================
 TYPO3: Inline Relational Record Editing Tutorial
-(c) 2007-2010 Oliver Hader <oliver@typo3.org> - All rights reserved
+(c) 2007-2021 Oliver Hader <oliver@typo3.org> - All rights reserved
 =====================================================================================================
 This script is part of the TYPO3 project. The TYPO3 project is free software; you can redistribute
 it and/or modify it under the terms of the GNU General Public License as published by the Free So
@@ -56,7 +56,6 @@ Extension:	https://typo3.org/extensions/repository/view/irre_tutorial/
 Thesis:		https://typo3.org/documentation/article/inline-relational-record-editing-irre/
 Video:		http://typo3.org/videos/play/7-minutes-of-fame-inline-relational-record-editing-irre/
 Core API:	https://docs.typo3.org/typo3cms/CoreApiReference/
-Wiki:		https://wiki.typo3.org/Inline_Relational_Record_Editing
 XING:		https://www.xing.com/profile/Oliver_Hader
 
 

@@ -77,6 +77,8 @@ return [
             'TypoScript.strictSyntax' => true,
             'simplifiedControllerActionDispatching' => false,
             'security.frontend.keepSessionDataOnLogout' => false,
+            'security.frontend.htmlSanitizeParseFuncDefault' => true,
+            'security.backend.htmlSanitizeRte' => false,
             'security.backend.enforceReferrer' => true,
             'newTranslationServer' => false,
         ],
@@ -224,6 +226,9 @@ return [
                     'groups' => ['system'],
                 ],
             ],
+        ],
+        'htmlSanitizer' => [
+            'default' => \TYPO3\CMS\Core\Html\DefaultSanitizerBuilder::class,
         ],
         'defaultCategorizedTables' => '',
         'displayErrors' => -1,

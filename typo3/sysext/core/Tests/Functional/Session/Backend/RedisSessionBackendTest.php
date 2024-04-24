@@ -34,10 +34,16 @@ class RedisSessionBackendTest extends FunctionalTestCase
     protected $subject;
 
     /**
+     * @var \Redis
+     */
+    protected $redis;
+
+    /**
      * @var array
      */
     protected $testSessionRecord = [
-        'ses_id' => 'randomSessionId',
+        // RedisSessionBackend::hash('randomSessionId') with encryption key 12345
+        'ses_id' => '21c0e911565a67315cdc384889c470fd291feafbfa62e31ecf7409430640bc7a',
         'ses_userid' => 1,
         // serialize(['foo' => 'bar', 'boo' => 'far'])
         'ses_data' => 'a:2:{s:3:"foo";s:3:"bar";s:3:"boo";s:3:"far";}',
@@ -49,6 +55,7 @@ class RedisSessionBackendTest extends FunctionalTestCase
     protected function setUp()
     {
         parent::setUp();
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey'] = '12345';
 
         if (!getenv('typo3TestingRedisHost')) {
             $this->markTestSkipped('environment variable "typo3TestingRedisHost" must be set to run this test');
@@ -63,11 +70,11 @@ class RedisSessionBackendTest extends FunctionalTestCase
         $env = getenv('typo3TestingRedisPort');
         $redisPort = is_string($env) ? (int)$env : 6379;
 
-        $redis = new \Redis();
-        $redis->connect($redisHost, $redisPort);
-        $redis->select(0);
+        $this->redis = new \Redis();
+        $this->redis->connect($redisHost, $redisPort);
+        $this->redis->select(0);
         // Clear db to ensure no sessions exist currently
-        $redis->flushDB();
+        $this->redis->flushDB();
 
         $this->subject = new RedisSessionBackend();
         $this->subject->initialize(
@@ -156,6 +163,31 @@ class RedisSessionBackendTest extends FunctionalTestCase
 
     /**
      * @test
+     * @covers SessionBackendInterface::update
+     */
+    public function nonHashedSessionIdsAreUpdated()
+    {
+        $testSessionRecord = $this->testSessionRecord;
+        $testSessionRecord['ses_tstamp'] = 1;
+        // simulate old session record by directly inserting it into redis
+        $this->redis->set(
+            'typo3_ses_default_' . sha1($GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey']) . '_randomSessionId',
+            json_encode($testSessionRecord),
+            ['nx']
+        );
+
+        $updateData = [
+            'ses_data' => serialize(['foo' => 'baz', 'idontwantto' => 'set the world on fire']),
+            'ses_tstamp' => $GLOBALS['EXEC_TIME']
+        ];
+        $expectedMergedData = array_merge($testSessionRecord, $updateData);
+        $this->subject->update('randomSessionId', $updateData);
+        $fetchedRecord = $this->subject->get('randomSessionId');
+        self::assertSame($expectedMergedData, $fetchedRecord);
+    }
+
+    /**
+     * @test
      * @covers SessionBackendInterface::set
      */
     public function existingSessionMustNotBeOverridden()
@@ -235,15 +267,15 @@ class RedisSessionBackendTest extends FunctionalTestCase
         $this->subject->set('anonymousSession', $anonymousSession);
 
         // Assert that we set authenticated session correctly
-        $this->assertArraySubset(
-            $authenticatedSession,
-            $this->subject->get('authenticatedSession')
+        self::assertSame(
+            $authenticatedSession['ses_data'],
+            $this->subject->get('authenticatedSession')['ses_data']
         );
 
         // assert that we set anonymous session correctly
-        $this->assertArraySubset(
-            $anonymousSession,
-            $this->subject->get('anonymousSession')
+        self::assertSame(
+            $anonymousSession['ses_data'],
+            $this->subject->get('anonymousSession')['ses_data']
         );
 
         // Run the garbage collection
@@ -252,9 +284,9 @@ class RedisSessionBackendTest extends FunctionalTestCase
         $this->subject->collectGarbage(60, 10);
 
         // Authenticated session should still be there
-        $this->assertArraySubset(
-            $authenticatedSession,
-            $this->subject->get('authenticatedSession')
+        self::assertSame(
+            $authenticatedSession['ses_data'],
+            $this->subject->get('authenticatedSession')['ses_data']
         );
 
         // Non-authenticated session should be removed

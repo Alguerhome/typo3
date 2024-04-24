@@ -50,24 +50,23 @@ class SimpleEnhancer extends AbstractEnhancer implements RoutingEnhancerInterfac
      */
     public function buildResult(Route $route, array $results, array $remainingQueryParameters = []): PageArguments
     {
-        $variableProcessor = $this->getVariableProcessor();
         // determine those parameters that have been processed
         $parameters = array_intersect_key(
             $results,
             array_flip($route->compile()->getPathVariables())
         );
         // strip of those that where not processed (internals like _route, etc.)
+        $internals = array_diff_key($results, $parameters);
         $matchedVariableNames = array_keys($parameters);
 
         $staticMappers = $route->filterAspects([StaticMappableAspectInterface::class], $matchedVariableNames);
         $dynamicCandidates = array_diff_key($parameters, $staticMappers);
 
         // all route arguments
-        $routeArguments = $this->getVariableProcessor()->inflateParameters($parameters, $route->getArguments());
+        $routeArguments = $this->inflateParameters($parameters, $internals);
         // dynamic arguments, that don't have a static mapper
-        $dynamicArguments = $variableProcessor
-            ->inflateNamespaceParameters($dynamicCandidates, '');
-        // static arguments, that don't appear in dynamic arguments
+        $dynamicArguments = $this->inflateParameters($dynamicCandidates);
+        // route arguments, that don't appear in dynamic arguments
         $staticArguments = ArrayUtility::arrayDiffAssocRecursive($routeArguments, $dynamicArguments);
 
         $page = $route->getOption('_page');
@@ -140,7 +139,6 @@ class SimpleEnhancer extends AbstractEnhancer implements RoutingEnhancerInterfac
 
     public function inflateParameters(array $parameters, array $internals = []): array
     {
-        return $this->getVariableProcessor()
-            ->inflateNamespaceParameters($parameters, '');
+        return $this->getVariableProcessor()->inflateParameters($parameters, $internals);
     }
 }

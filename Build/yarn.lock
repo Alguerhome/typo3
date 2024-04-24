@@ -1004,10 +1004,10 @@ ckeditor-wordcount-plugin@^1.17.6:
   resolved "https://registry.yarnpkg.com/ckeditor-wordcount-plugin/-/ckeditor-wordcount-plugin-1.17.6.tgz#cb1a2a988ce8c3f29cd701f38b120c3a03daef85"
   integrity sha512-73Q0/W445UoToQ8fyaBhXxhsZXMOxoeGGaIZ1HyiPc1nisK1gbIGAFi1ksgKoavQhri0+sOfpnYSFXDEC608EQ==
 
-ckeditor4@^4.15.0:
-  version "4.15.0"
-  resolved "https://registry.yarnpkg.com/ckeditor4/-/ckeditor4-4.15.0.tgz#9f66bbec00f4ca1c93ce79298714cb56d21e52bc"
-  integrity sha512-OhL3gqCU2JjulhyrF24LlwLKIZ/CO5sPoiHRdDwihRkz9FOeZQnL+iMa0q/zxXY/jt1R+MxDvt4/6uiQk663hQ==
+ckeditor4@^4.16.2:
+  version "4.16.2"
+  resolved "https://registry.yarnpkg.com/ckeditor4/-/ckeditor4-4.16.2.tgz#322e0aa22cc79cfc825345b015b29bcdd8ada3a2"
+  integrity sha512-5x2FmI+yGpQIKISh24Wp4HwjQxN6C4Lw59yh68HbFwcnMu8DvSiZLJfeINGvRG1oQ1L9GzJ5Pqd0PL0KDH08Jw==
 
 class-utils@^0.3.5:
   version "0.3.6"
@@ -1110,9 +1110,9 @@ code-point-at@^1.0.0:
   integrity sha1-DQcLTQQ6W+ozovGkDi7bPZpMz3c=
 
 codemirror@^5.58.1:
-  version "5.58.1"
-  resolved "https://registry.yarnpkg.com/codemirror/-/codemirror-5.58.1.tgz#ec6bf38ad2a17f74c61bd00cc6dc5a69bd167854"
-  integrity sha512-UGb/ueu20U4xqWk8hZB3xIfV2/SFqnSLYONiM3wTMDqko0bsYrsAkGGhqUzbRkYm89aBKPyHtuNEbVWF9FTFzw==
+  version "5.62.0"
+  resolved "https://registry.yarnpkg.com/codemirror/-/codemirror-5.62.0.tgz#e9ecd012e6f9eaf2e05ff4a449ff750f51619e22"
+  integrity sha512-Xnl3304iCc8nyVZuRkzDVVwc794uc9QNX0UcPGeNic1fbzkSrO4l4GVXho9tRNKBgPYZXgocUqXyfIv3BILhCQ==
 
 coffeescript@~1.10.0:
   version "1.10.0"
@@ -5076,6 +5076,11 @@ mime-db@^1.28.0:
   version "1.45.0"
   resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.45.0.tgz#cceeda21ccd7c3a745eba2decd55d4b73e7879ea"
   integrity sha512-CkqLUxUk15hofLoLyljJSrukZi8mAtgd+yE5uO4tqRZsdsAJKv0O+rFMhVDRJgozy+yG6md5KwuXhD4ocIoP+w==
+
+mime-db@^1.46.0:
+  version "1.46.0"
+  resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.46.0.tgz#6267748a7f799594de3cbc8cde91def349661cee"
+  integrity sha512-svXaP8UQRZ5K7or+ZmfNhg2xX3yKDMUzqadsSqi4NCH/KomcH75MAMYAGVlvXn4+b/xOPhS3I2uHKRUzvjY7BQ==
 
 mime-types@^2.1.12, mime-types@~2.1.19, mime-types@~2.1.24:
   version "2.1.27"

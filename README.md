@@ -1,10 +1,8 @@
 TYPO3 CMS
 =========
 
-[![Build Status](https://travis-ci.org/TYPO3/TYPO3.CMS.svg?branch=master)](https://travis-ci.org/TYPO3/TYPO3.CMS)
-
 TYPO3 is an open source PHP based web content management system released
-under the GNU GPL. TYPO3 is copyright (c) 1999-2020 by Kasper Skaarhoj.
+under the GNU GPL. TYPO3 is copyright (c) 1999-2021 by Kasper Skaarhoj.
 
 This document provides a basic introduction to TYPO3.
 
@@ -119,7 +117,7 @@ Contributors Walkthrough and Review System:
 > helpful and get you up and running! (Please post your questions in
 > Slack Channel `#typo3-cms-coredev` regarding contribution support)
 
-The [repository at GitHub](https://github.com/TYPO3/TYPO3.CMS) is a
+The [repository at GitHub](https://github.com/typo3/typo3) is a
 synchronized mirror of the primary TYPO3 core git repository:
 
 * https://git.typo3.org/Packages/TYPO3.CMS.git

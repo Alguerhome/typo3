@@ -23,7 +23,6 @@ use TYPO3\CMS\Core\Crypto\Random;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\FrontendRestrictionContainer;
-use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Session\SessionManager;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -342,13 +341,15 @@ class FrontendLoginController extends AbstractPlugin implements LoggerAwareInter
             $user = $this->pi_getRecord('fe_users', (int)$uid);
             $userHash = $user['felogin_forgotHash'];
             $compareHash = explode('|', $userHash);
-            if (strlen($compareHash[1]) === 40) {
+            if (!$compareHash || !$compareHash[1] || $compareHash[0] < time() || !hash_equals($compareHash[0], $hash[0])) {
+                $hashEquals = false;
+            } elseif (strlen($compareHash[1]) === 40) {
                 $hashEquals = hash_equals($compareHash[1], GeneralUtility::hmac((string)$hash[1]));
             } else {
                 // backward-compatibility for previous MD5 hashes
                 $hashEquals = hash_equals($compareHash[1], md5($hash[1]));
             }
-            if (!$compareHash || !$compareHash[1] || $compareHash[0] < time() || !hash_equals($compareHash[0], $hash[0]) || !$hashEquals) {
+            if (!$hashEquals) {
                 $markerArray['###STATUS_MESSAGE###'] = $this->getDisplayText(
                     'change_password_notvalid_message',
                     $this->conf['changePasswordNotValidMessage_stdWrap.']
@@ -1074,29 +1075,32 @@ class FrontendLoginController extends AbstractPlugin implements LoggerAwareInter
             if ($parsedUrl['scheme'] === 'http' || $parsedUrl['scheme'] === 'https') {
                 $host = $parsedUrl['host'];
 
-                try {
-                    $site = $this->siteFinder->getSiteByPageId((int)$this->frontendController->id);
-                    return $site->getBase()->getHost() === $host;
-                } catch (SiteNotFoundException $e) {
+                // check sites first
+                $sites = $this->siteFinder->getAllSites();
+                foreach ($sites as $site) {
+                    if ($site->getBase()->getHost() === $host) {
+                        return true;
+                    }
+                }
 
-                    // Removes the last path segment and slash sequences like /// (if given):
-                    $path = preg_replace('#/+[^/]*$#', '', $parsedUrl['path'] ?? '');
+                // continue with sys_domain records
+                // Removes the last path segment and slash sequences like /// (if given):
+                $path = preg_replace('#/+[^/]*$#', '', $parsedUrl['path'] ?? '');
 
-                    $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('sys_domain');
-                    $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
-                    $localDomains = $queryBuilder->select('domainName')
-                        ->from('sys_domain')
-                        ->execute()
-                        ->fetchAll();
+                $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('sys_domain');
+                $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class));
+                $localDomains = $queryBuilder->select('domainName')
+                    ->from('sys_domain')
+                    ->execute()
+                    ->fetchAll();
 
-                    if (is_array($localDomains)) {
-                        foreach ($localDomains as $localDomain) {
-                            // strip trailing slashes (if given)
-                            $domainName = rtrim($localDomain['domainName'], '/');
-                            if (GeneralUtility::isFirstPartOfStr($host . $path . '/', $domainName . '/')) {
-                                $result = true;
-                                break;
-                            }
+                if (is_array($localDomains)) {
+                    foreach ($localDomains as $localDomain) {
+                        // strip trailing slashes (if given)
+                        $domainName = rtrim($localDomain['domainName'], '/');
+                        if (GeneralUtility::isFirstPartOfStr($host . $path . '/', $domainName . '/')) {
+                            $result = true;
+                            break;
                         }
                     }
                 }

@@ -55,7 +55,8 @@ class PreviewSimulator implements MiddlewareInterface
         if ((bool)$this->context->getPropertyFromAspect('backend.user', 'isLoggedIn', false)) {
             $simulatingDate = $this->simulateDate($request);
             $simulatingGroup = $this->simulateUserGroup($request);
-            $GLOBALS['TSFE']->fePreview = ((int)($simulatingDate || $simulatingGroup));
+            $showHiddenRecords = ($this->context->hasAspect('visibility') ? $this->context->getAspect('visibility')->includeHidden() : false);
+            $GLOBALS['TSFE']->fePreview = ($simulatingDate || $simulatingGroup || $showHiddenRecords);
         }
 
         return $handler->handle($request);
@@ -120,7 +121,7 @@ class PreviewSimulator implements MiddlewareInterface
         $frontendUser = $GLOBALS['TSFE']->fe_user;
         $frontendUser->user[$frontendUser->usergroup_column] = $simulateUserGroup;
         // let's fake having a user with that group, too
-        $frontendUser->user['uid'] = 1;
+        $frontendUser->user['uid'] = PHP_INT_MAX;
         $this->context->setAspect(
             'frontend.user',
             GeneralUtility::makeInstance(

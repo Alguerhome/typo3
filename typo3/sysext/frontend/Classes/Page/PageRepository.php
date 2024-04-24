@@ -242,8 +242,11 @@ class PageRepository implements LoggerAwareInterface
         $userAspect = $this->context->getAspect('frontend.user');
         $frontendUserIdentifier = 'user_' . (int)$userAspect->get('id') . '_groups_' . md5(implode(',', $userAspect->getGroupIds()));
 
+        // We need to respect the date aspect as we might have subrequests with a different time (e.g. backend preview links)
+        $dateTimeIdentifier = $this->context->getAspect('date')->get('timestamp');
+
         $cache = $this->getRuntimeCache();
-        $cacheIdentifier = 'PageRepository_hidDelWhere' . ($show_hidden ? 'ShowHidden' : '') . '_' . (int)$this->versioningWorkspaceId . '_' . $frontendUserIdentifier;
+        $cacheIdentifier = 'PageRepository_hidDelWhere' . ($show_hidden ? 'ShowHidden' : '') . '_' . (int)$this->versioningWorkspaceId . '_' . $frontendUserIdentifier . '_' . $dateTimeIdentifier;
         $cacheEntry = $cache->get($cacheIdentifier);
         if ($cacheEntry) {
             $this->where_hid_del = $cacheEntry;
@@ -691,9 +694,8 @@ class PageRepository implements LoggerAwareInterface
 
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
             $queryBuilder->setRestrictions(GeneralUtility::makeInstance(FrontendRestrictionContainer::class, $this->context));
-            if (empty($this->where_groupAccess)) {
-                $queryBuilder->getRestrictions()->removeByType(FrontendGroupRestriction::class);
-            }
+            // Because "fe_group" is an exclude field, so it is synced between overlays, the group restriction is removed for language overlays of pages
+            $queryBuilder->getRestrictions()->removeByType(FrontendGroupRestriction::class);
             $result = $queryBuilder->select('*')
                 ->from('pages')
                 ->where(
